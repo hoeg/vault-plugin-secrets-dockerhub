@@ -26,8 +26,8 @@ const (
 	descTokenNamespace = "Docker namespace to issue a token to."
 	tokenLabel         = "label"
 	descTokenLabel     = "Name for the token to create."
-	tokenUuid          = "uuid"
-	descTokenUuid      = "The uuid for a generated token. Used for revokation."
+	tokenUUID          = "uuid"
+	descTokenUUID      = "The uuid for a generated token. Used for revokation."
 )
 
 const pathTokenHelpSyn = `
@@ -83,7 +83,7 @@ func (b *backend) handleCreateToken(ctx context.Context, req *logical.Request, d
 	ns := getStringFrom(data, tokenNamespace)
 	l := getStringFrom(data, tokenLabel)
 
-	c, err := b.Config(ctx, u, req.Storage)
+	c, err := b.Config(ctx, u, ns, req.Storage)
 	if err != nil {
 		return nil, err
 	}
@@ -107,25 +107,27 @@ func (b *backend) handleCreateToken(ctx context.Context, req *logical.Request, d
 			InternalData: map[string]interface{}{
 				"secret_type": "DockerHub",
 				tokenUsername: c.Username,
-				tokenUuid:     t.Uuid,
+				tokenUUID:     t.UUID,
 			},
 		},
 		Data: map[string]interface{}{
-			"token":       t.Token,
-			"uuid":        t.Uuid,
-			tokenUsername: c.Username,
+			"token":        t.Token,
+			tokenUUID:      t.UUID,
+			tokenUsername:  c.Username,
+			tokenNamespace: c.Namespace,
 		},
 	}, nil
 }
 
 func (b *backend) handleRevokeToken(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 	u := getStringFrom(data, tokenUsername)
-	uuid := getStringFrom(data, tokenUuid)
-	c, err := b.Config(ctx, u, req.Storage)
+	ns := getStringFrom(data, tokenNamespace)
+	UUID := getStringFrom(data, tokenUUID)
+	c, err := b.Config(ctx, u, ns, req.Storage)
 	if err != nil {
 		return nil, err
 	}
-	err = c.DeleteToken(ctx, uuid)
+	err = c.DeleteToken(ctx, UUID)
 	if err != nil {
 		return nil, err
 	}

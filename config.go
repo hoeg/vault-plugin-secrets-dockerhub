@@ -103,7 +103,7 @@ type Config struct {
 	MaxTTL    time.Duration `json:"max_ttl"`
 }
 
-func (b *backend) Config(ctx context.Context, username string, s logical.Storage) (*Config, error) {
+func (b *backend) Config(ctx context.Context, username, namespace string, s logical.Storage) (*Config, error) {
 	c := &Config{}
 	entry, err := s.Get(ctx, getStorePath(username))
 	if err != nil {
@@ -130,7 +130,7 @@ func (b *backend) handleCreateConfig(ctx context.Context, req *logical.Request, 
 
 	fmt.Printf("Config is: %v/n", c)
 
-	ce, err := logical.StorageEntryJSON(getStorePath(c.Username), c)
+	ce, err := logical.StorageEntryJSON(getStorePath(c.Username, c.Namespace), c)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", fmtErrConfMarshal, err)
 	}
@@ -142,16 +142,18 @@ func (b *backend) handleCreateConfig(ctx context.Context, req *logical.Request, 
 
 func (b *backend) handleDeleteConfig(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 	u := getStringFrom(data, configUsername)
-	return nil, req.Storage.Delete(ctx, getStorePath(u))
+	ns := getStringFrom(data, configNamespace)
+	return nil, req.Storage.Delete(ctx, getStorePath(u, ns))
 }
 
-func getStorePath(u string) string {
-	return fmt.Sprintf("config/%s", u)
+func getStorePath(u, ns string) string {
+	return fmt.Sprintf("config/%s/%s", u, ns)
 }
 
 func (b *backend) handleReadConfig(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 	u := getStringFrom(data, configUsername)
-	c, err := b.Config(ctx, u, req.Storage)
+	ns := getStringFrom(data, configNamespace)
+	c, err := b.Config(ctx, u, ns, req.Storage)
 	if err != nil {
 		return nil, err
 	}
@@ -175,4 +177,8 @@ func (b *backend) handleReadConfig(ctx context.Context, req *logical.Request, da
 	return &logical.Response{
 		Data: resp,
 	}, nil
+}
+
+func (b *backend) handleListConfigs(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	return nil, nil
 }
