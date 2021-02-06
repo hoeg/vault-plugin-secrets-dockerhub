@@ -50,12 +50,11 @@ func newBackend() (*backend, error) {
 		PathsSpecial: &logical.Paths{
 			SealWrapStorage: []string{
 				"config/",
-				"token/",
 			},
 		},
 		Paths: framework.PathAppend(
-			b.tokenPaths(),
 			b.configPaths(),
+			b.tokenPaths(),
 		),
 	}
 
