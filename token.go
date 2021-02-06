@@ -10,7 +10,7 @@ import (
 
 // pathPatternConfig is the string used to define the base path of the config
 // endpoint as well as the storage path of the config object.
-var pathPatternToken = fmt.Sprint("token/(%s)", tokenNamespace)
+var pathPatternToken = fmt.Sprint("token/(%s)/(%s)", tokenUsername, tokenNamespace)
 
 const (
 	fmtErrTokenMarshal = "failed to marshal token to JSON"
@@ -19,6 +19,8 @@ const (
 )
 
 const (
+	tokenUsername      = "username"
+	descTokenUsername  = ""
 	tokenNamespace     = "namespace"
 	descTokenNamespace = "Docker namespace to issue a token to."
 	tokenLabel         = "token-label"
@@ -38,6 +40,10 @@ func (b *backend) tokenPaths() []*framework.Path {
 			Pattern: pathPatternConfig,
 
 			Fields: map[string]*framework.FieldSchema{
+				tokenUsername: {
+					Type:        framework.TypeString,
+					Description: descTokenUsername,
+				},
 				tokenNamespace: {
 					Type:        framework.TypeString,
 					Description: descTokenNamespace,
@@ -74,7 +80,36 @@ func (b *backend) tokenPaths() []*framework.Path {
 }
 
 func (b *backend) handleCreateToken(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	return nil, nil
+	u := getStringFrom(data, tokenUsername)
+	ns := getStringFrom(data, tokenNamespace)
+	l := getStringFrom(data, tokenLabel)
+
+	c, err := NewClient(u, ns, &req.Storage)
+	if err != nil {
+		return &logical.Response{
+			Data: map[string]interface{}{
+				"error": err.Error(),
+			},
+		}, nil
+	}
+
+	t, err := c.NewToken(ctx, l)
+	if err != nil {
+		return &logical.Response{
+			Data: map[string]interface{}{
+				"error": err.Error(),
+			},
+		}, nil
+	}
+
+	//store uuid + label
+
+	return &logical.Response{
+		Data: map[string]interface{}{
+			"token": t.Token,
+			"uuid":  t.Uuid,
+		},
+	}, nil
 }
 
 func (b *backend) handleRevokeToken(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
