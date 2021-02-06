@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 )
@@ -84,44 +85,35 @@ func (b *backend) handleCreateToken(ctx context.Context, req *logical.Request, d
 
 	c, err := b.Config(ctx, u, req.Storage)
 	if err != nil {
-		return &logical.Response{
-			Data: map[string]interface{}{
-				"error": err.Error(),
-			},
-		}, nil
+		return nil, err
 	}
 	if ns != c.Namespace {
-		return &logical.Response{
-			Data: map[string]interface{}{
-				"error": "illegal namespace",
-			},
-		}, nil
+		return nil, err
 	}
 
 	t, err := c.NewToken(ctx, l)
 	if err != nil {
-		return &logical.Response{
-			Data: map[string]interface{}{
-				"error": err.Error(),
-			},
-		}, nil
+		return nil, err
 	}
 
+	logger := hclog.New(&hclog.LoggerOptions{})
+	logger.Error(fmt.Sprintf("ttl: %s", c.TTL))
 	return &logical.Response{
 		Secret: &logical.Secret{
 			LeaseOptions: logical.LeaseOptions{
 				TTL:       c.TTL,
 				Renewable: false,
-				MaxTTL:    c.MaxTTL,
 			},
 			InternalData: map[string]interface{}{
-				tokenUuid:     t.Uuid,
+				"secret_type": "DockerHub",
 				tokenUsername: c.Username,
+				tokenUuid:     t.Uuid,
 			},
 		},
 		Data: map[string]interface{}{
-			"token": t.Token,
-			"uuid":  t.Uuid,
+			"token":       t.Token,
+			"uuid":        t.Uuid,
+			tokenUsername: c.Username,
 		},
 	}, nil
 }
@@ -131,19 +123,11 @@ func (b *backend) handleRevokeToken(ctx context.Context, req *logical.Request, d
 	uuid := getStringFrom(data, tokenUuid)
 	c, err := b.Config(ctx, u, req.Storage)
 	if err != nil {
-		return &logical.Response{
-			Data: map[string]interface{}{
-				"error": err.Error(),
-			},
-		}, nil
+		return nil, err
 	}
 	err = c.DeleteToken(ctx, uuid)
 	if err != nil {
-		return &logical.Response{
-			Data: map[string]interface{}{
-				"error": err.Error(),
-			},
-		}, nil
+		return nil, err
 	}
 	return nil, nil
 }

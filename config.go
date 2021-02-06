@@ -111,7 +111,7 @@ func (b *backend) Config(ctx context.Context, username string, s logical.Storage
 	}
 
 	if entry == nil || len(entry.Value) == 0 {
-		return c, nil
+		return nil, fmt.Errorf("unable to finde configuration for %q", username)
 	}
 
 	if err := entry.DecodeJSON(&c); err != nil {
