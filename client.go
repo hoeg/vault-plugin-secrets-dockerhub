@@ -41,7 +41,7 @@ func (c Config) NewToken(ctx context.Context, label string) (DockerHubToken, err
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "vault-docker-hub-secret")
 	req.AddCookie(&http.Cookie{Name: "token", Value: apiToken})
-	req.AddCookie(&http.Cookie{Name: "namespace", Value: c.namespace})
+	req.AddCookie(&http.Cookie{Name: "namespace", Value: c.Namespace})
 
 	httpClient := http.Client{}
 	resp, err := httpClient.Do(req)
@@ -77,7 +77,7 @@ func (c Config) DeleteToken(ctx context.Context, uuid string) error {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "vault-docker-hub-secret")
 	req.AddCookie(&http.Cookie{Name: "token", Value: apiToken})
-	req.AddCookie(&http.Cookie{Name: "namespace", Value: c.namespace})
+	req.AddCookie(&http.Cookie{Name: "namespace", Value: c.Namespace})
 
 	httpClient := http.Client{}
 	resp, err := httpClient.Do(req)
@@ -96,8 +96,8 @@ func (c Config) dockerHubAuth(ctx context.Context) (string, error) {
 		Username string `json:"username"`
 		Password string `json:"password"`
 	}{
-		Username: c.username,
-		Password: c.password,
+		Username: c.Username,
+		Password: c.Password,
 	}
 	payload, err := json.Marshal(login)
 	if err != nil {
