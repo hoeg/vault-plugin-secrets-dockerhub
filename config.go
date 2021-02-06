@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
 // pathPatternConfig is the string used to define the base path of the config
-// endpoint as well as the storage path of the config object.
+// endpoint
 var pathPatternConfig = fmt.Sprintf("config/%s", framework.GenericNameRegex(configUsername))
+
+const configListKey = "dockerhub/config"
 
 const (
 	fmtErrConfRetrieval = "failed to get configuration from storage"
@@ -34,7 +37,7 @@ const pathConfigHelpSyn = `
 Configure the Docker Hub secrets plugin.
 `
 
-const defaultTTL time.Duration = 5 * time.Minute
+const defaultTTL time.Duration = time.Duration(5 * 60)
 
 var pathConfigHelpDesc = fmt.Sprintf(``)
 
@@ -47,17 +50,14 @@ func (b *backend) configPaths() []*framework.Path {
 				configNamespace: {
 					Type:        framework.TypeString,
 					Description: descConfigNamespace,
-					Required:    true,
 				},
 				configUsername: {
 					Type:        framework.TypeString,
 					Description: descConfigUsername,
-					Required:    true,
 				},
 				configPassword: {
 					Type:        framework.TypeString,
 					Description: descConfigPassword,
-					Required:    true,
 				},
 				"ttl": {
 					Type:        framework.TypeDurationSecond,
@@ -86,10 +86,13 @@ func (b *backend) configPaths() []*framework.Path {
 					Callback: b.handleCreateConfig,
 					Summary:  "Update an existing configuration for Docker Hub.",
 				},
+				logical.ListOperation: &framework.PathOperation{
+					Callback: b.handleListConfigs,
+					Summary:  "List configurations for a user.",
+				},
 			},
 			HelpSynopsis:    pathConfigHelpSyn,
 			HelpDescription: pathConfigHelpDesc,
-			ExistenceCheck:  b.handleExistenceCheck,
 		},
 	}
 }
@@ -105,7 +108,7 @@ type Config struct {
 
 func (b *backend) Config(ctx context.Context, username, namespace string, s logical.Storage) (*Config, error) {
 	c := &Config{}
-	entry, err := s.Get(ctx, getStorePath(username))
+	entry, err := s.Get(ctx, getStorePath(username, namespace))
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", fmtErrConfRetrieval, err)
 	}
@@ -128,7 +131,33 @@ func (b *backend) handleCreateConfig(ctx context.Context, req *logical.Request, 
 	c.Namespace = getStringFrom(data, configNamespace)
 	c.TTL = defaultTTL
 
-	fmt.Printf("Config is: %v/n", c)
+	logger := hclog.New(&hclog.LoggerOptions{})
+	logger.Info(fmt.Sprintf("Config is: %v/n", c))
+
+	conf, err := getUserConfigs(ctx, req.Storage)
+	if err != nil {
+		return nil, err
+	}
+	added := false
+	for username := range conf {
+		if username == c.Username {
+			if conf[username] == nil {
+				conf[username] = make([]string, 1)
+			}
+			logger.Error("3")
+			conf[username] = append(conf[username], c.Namespace)
+			added = true
+		}
+	}
+	logger.Error("1")
+	if !added {
+		logger.Error("2")
+		conf[c.Username] = []string{c.Namespace}
+	}
+	err = storeUserConfigs(ctx, conf, req.Storage)
+	if err != nil {
+		return nil, err
+	}
 
 	ce, err := logical.StorageEntryJSON(getStorePath(c.Username, c.Namespace), c)
 	if err != nil {
@@ -147,7 +176,7 @@ func (b *backend) handleDeleteConfig(ctx context.Context, req *logical.Request, 
 }
 
 func getStorePath(u, ns string) string {
-	return fmt.Sprintf("config/%s/%s", u, ns)
+	return fmt.Sprintf("dockerhub/config/%s/%s", u, ns)
 }
 
 func (b *backend) handleReadConfig(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
@@ -179,6 +208,61 @@ func (b *backend) handleReadConfig(ctx context.Context, req *logical.Request, da
 	}, nil
 }
 
+type UserConfigs map[string][]string
+
 func (b *backend) handleListConfigs(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	return nil, nil
+	logger := hclog.New(&hclog.LoggerOptions{})
+	logger.Debug("Listing!")
+	confs, err := getUserConfigs(ctx, req.Storage)
+	if err != nil {
+		return nil, err
+	}
+	u := getStringFrom(data, configUsername)
+	for username, namespaces := range confs {
+		logger.Info(fmt.Sprintf("%s - %v", username, namespaces))
+		if u == username {
+			resp := make(map[string]interface{})
+			resp["namespaces"] = namespaces
+			return &logical.Response{
+				Data: resp,
+			}, nil
+		}
+	}
+
+	resp := make(map[string]interface{})
+	resp["namespaces"] = "namespaces"
+	return &logical.Response{
+		Data: resp,
+	}, nil
+}
+
+func getUserConfigs(ctx context.Context, s logical.Storage) (UserConfigs, error) {
+	logger := hclog.New(&hclog.LoggerOptions{})
+	entry, err := s.Get(ctx, configListKey)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", fmtErrConfRetrieval, err)
+	}
+	logger.Error(fmt.Sprintf("getting: %v", entry))
+	if entry == nil || len(entry.Value) == 0 {
+		return make(map[string][]string), nil
+	}
+
+	var confs UserConfigs
+	if err := entry.DecodeJSON(&confs); err != nil {
+		return nil, fmt.Errorf("%s: %w", fmtErrConfUnmarshal, err)
+	}
+	return confs, nil
+}
+
+func storeUserConfigs(ctx context.Context, conf UserConfigs, s logical.Storage) error {
+	logger := hclog.New(&hclog.LoggerOptions{})
+	ce, err := logical.StorageEntryJSON(configListKey, conf)
+	if err != nil {
+		return fmt.Errorf("%s: %w", fmtErrConfMarshal, err)
+	}
+	logger.Error(fmt.Sprintf("storing: %v", ce))
+	if err = s.Put(ctx, ce); err != nil {
+		return fmt.Errorf("%s: %w", fmtErrConfPersist, err)
+	}
+	return nil
 }
