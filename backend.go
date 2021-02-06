@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/vault/sdk/framework"
@@ -17,6 +18,7 @@ The DockerHub secrets backend will create a temporary access token for Docker Hu
 // backend wraps the backend framework
 type backend struct {
 	*framework.Backend
+	configLock *sync.Mutex
 }
 
 var _ logical.Factory = Factory
@@ -66,9 +68,9 @@ func newBackend() (*backend, error) {
 						Type:        framework.TypeString,
 						Description: descTokenUsername,
 					},
-					tokenUuid: {
+					tokenUUID: {
 						Type:        framework.TypeString,
-						Description: descTokenUuid,
+						Description: descTokenUUID,
 					},
 				},
 			},

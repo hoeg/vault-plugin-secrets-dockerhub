@@ -15,7 +15,7 @@ const (
 )
 
 type DockerHubToken struct {
-	Uuid  string `json:"uuid"`
+	UUID  string `json:"uuid"`
 	Token string `json:"token"`
 }
 
@@ -65,12 +65,12 @@ func (c Config) NewToken(ctx context.Context, label string) (DockerHubToken, err
 }
 
 // DeleteToken will delete at token that is associated with the uuid.
-func (c Config) DeleteToken(ctx context.Context, uuid string) error {
+func (c Config) DeleteToken(ctx context.Context, UUID string) error {
 	apiToken, err := c.dockerHubAuth(ctx)
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, fmt.Sprintf("%s/%s", apiTokenEndpoint, uuid), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, fmt.Sprintf("%s/%s", apiTokenEndpoint, UUID), nil)
 	if err != nil {
 		return err
 	}
