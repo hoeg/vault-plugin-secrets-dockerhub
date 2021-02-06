@@ -4,7 +4,16 @@
 
 Docker is used in many CI/CD piplines and accessing your private repositories should be made possible in a secure way. Using username and password for this is bad since these credentials have way to broad permissions.
 
+## Usage
 
-### Credit
+### Register the plugin
 
-Structure for the plugin has been taken from https://github.com/hashicorp/vault-guides/tree/master/plugins/vault-plugin-secrets-mock
+### Configure DockerHub account
+
+`vault write dockerhub/config/<username> password=<password> namespace=<namespace>`
+
+`ttl` is optional. If it is not provided it will be set to the default `ttl` which is 5 minutes.
+
+### Creating tokens
+
+`vault write dockerhub/token/<username>/<namespace> label=<token label>`
