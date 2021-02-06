@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/hashicorp/go-hclog"
+	hclog "github.com/hashicorp/go-hclog"
 	dockerhub "github.com/hashicorp/vault-guides/plugins/vault-plugin-secrets-mock"
 	"github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/sdk/plugin"
@@ -11,7 +11,6 @@ import (
 
 func main() {
 	logger := hclog.New(&hclog.LoggerOptions{})
-	logger.Info("started plugin")
 	apiClientMeta := &api.PluginAPIClientMeta{}
 
 	flags := apiClientMeta.FlagSet()
@@ -32,6 +31,3 @@ func main() {
 		os.Exit(1)
 	}
 }
-
-
-vault write sys/plugins/catalog/vault-plugin-secrets-dockerhub sha_256=$( shasum -a 256 ./vault/plugins/vault-plugin-secrets-dockerhub | cut -d " " -f1) command="vault-plugin-secrets-dockerhub"
