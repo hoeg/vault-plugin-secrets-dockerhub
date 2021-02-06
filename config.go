@@ -122,18 +122,10 @@ func (b *backend) handleCreateConfig(ctx context.Context, req *logical.Request, 
 	if err != nil {
 		return nil, err
 	}
-	ns := data.Get(configNamespace)
-	if s, ok := ns.(string); ok && s != "" {
-		c.Namespace = s
-	}
-	u := data.Get(configUsername)
-	if s, ok := u.(string); ok && s != "" {
-		c.Username = s
-	}
-	p := data.Get(configPassword)
-	if s, ok := p.(string); ok && s != "" {
-		c.Password = s
-	}
+
+	c.Namespace = getStringFrom(data, configNamespace)
+	c.Username = getStringFrom(data, configUsername)
+	c.Password = getStringFrom(data, configPassword)
 
 	fmt.Printf("Config is: %v/n", c)
 
