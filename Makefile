@@ -21,7 +21,7 @@ build:
 	GOOS=$(OS) GOARCH="$(GOARCH)" go build -o $(BIN) cmd/vault-plugin-secrets-dockerhub/main.go
 
 start:
-	vault server -dev -dev-root-token-id=root -dev-plugin-dir=./vault/plugins
+	vault server -dev -dev-root-token-id=root -dev-plugin-dir=./vault/plugins -log-level=debug
 
 register: build
 	vault write sys/plugins/catalog/$(PLUGIN_NAME) sha_256=$(shell shasum -a 256 $(BIN) | cut -d " " -f1) command="$(PLUGIN_NAME)"
