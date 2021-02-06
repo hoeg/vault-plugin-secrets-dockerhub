@@ -23,15 +23,15 @@ var _ logical.Factory = Factory
 
 // Factory configures and returns DockerHub backends
 func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
-	b.Logger().Info("plugin backend initialization started")
+	if conf == nil {
+		return nil, fmt.Errorf("configuration passed into backend is nil")
+	}
+
 	b, err := newBackend()
 	if err != nil {
 		return nil, err
 	}
-
-	if conf == nil {
-		return nil, fmt.Errorf("configuration passed into backend is nil")
-	}
+	b.Logger().Info("plugin backend initialization started")
 
 	if err := b.Setup(ctx, conf); err != nil {
 		return nil, err
@@ -47,25 +47,19 @@ func newBackend() (*backend, error) {
 	b.Backend = &framework.Backend{
 		Help:        strings.TrimSpace(dockerHubHelp),
 		BackendType: logical.TypeLogical,
-		Paths:       framework.PathAppend(
-		//	b.tokenPaths(),
-		//b.configPaths(),
+		PathsSpecial: &logical.Paths{
+			SealWrapStorage: []string{
+				"config/",
+				"token/",
+			},
+		},
+		Paths: framework.PathAppend(
+			b.tokenPaths(),
+			b.configPaths(),
 		),
-		Invalidate: b.Invalidate,
 	}
 
 	return b, nil
-}
-
-// Invalidate resets the plugin. It is called when a key is updated via
-// replication.
-func (b *backend) Invalidate(_ context.Context, key string) {
-	if key == pathPatternConfig {
-		// Configuration has changed so reset the client.
-		//b.clientLock.Lock()
-		//b.client = nil
-		//b.clientLock.Unlock()
-	}
 }
 
 func (b *backend) handleExistenceCheck(ctx context.Context, req *logical.Request, data *framework.FieldData) (bool, error) {
