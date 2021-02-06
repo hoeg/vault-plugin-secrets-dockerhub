@@ -10,7 +10,7 @@ import (
 
 // pathPatternConfig is the string used to define the base path of the config
 // endpoint as well as the storage path of the config object.
-const pathPatternConfig = "config"
+var pathPatternConfig = fmt.Sprintf("config/(%s)", configUsername)
 
 const (
 	fmtErrConfRetrieval = "failed to get configuration from storage"
