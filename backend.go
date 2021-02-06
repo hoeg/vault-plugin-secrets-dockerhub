@@ -56,6 +56,23 @@ func newBackend() (*backend, error) {
 			b.configPaths(),
 			b.tokenPaths(),
 		),
+		Secrets: []*framework.Secret{
+			&framework.Secret{
+				Type:            "DockerHub",
+				DefaultDuration: defaultTTL,
+				Revoke:          b.handleRevokeToken,
+				Fields: map[string]*framework.FieldSchema{
+					tokenUsername: {
+						Type:        framework.TypeString,
+						Description: descTokenUsername,
+					},
+					tokenUuid: {
+						Type:        framework.TypeString,
+						Description: descTokenUuid,
+					},
+				},
+			},
+		},
 	}
 
 	return b, nil
