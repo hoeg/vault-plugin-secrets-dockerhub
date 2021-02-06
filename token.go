@@ -25,6 +25,8 @@ const (
 	descTokenNamespace = "Docker namespace to issue a token to."
 	tokenLabel         = "label"
 	descTokenLabel     = "Name for the token to create."
+	tokenUuid          = "uuid"
+	descTokenUuid      = "The uuid for a generated token. Used for revokation."
 )
 
 const pathTokenHelpSyn = `
@@ -67,10 +69,6 @@ func (b *backend) tokenPaths() []*framework.Path {
 					Callback: b.handleRevokeToken,
 					Summary:  "Revoke access token for Docker Hub.",
 				},
-				logical.ListOperation: &framework.PathOperation{
-					Callback: b.handleListToken,
-					Summary:  "List issued access tokens for Docker Hub access tokens.",
-				},
 			},
 			HelpSynopsis:    pathTokenHelpSyn,
 			HelpDescription: pathTokenHelpDesc,
@@ -84,8 +82,15 @@ func (b *backend) handleCreateToken(ctx context.Context, req *logical.Request, d
 	ns := getStringFrom(data, tokenNamespace)
 	l := getStringFrom(data, tokenLabel)
 
-	config := b.Config(u)
-	if ns != config.Namespace {
+	c, err := b.Config(ctx, u, req.Storage)
+	if err != nil {
+		return &logical.Response{
+			Data: map[string]interface{}{
+				"error": err.Error(),
+			},
+		}, nil
+	}
+	if ns != c.Namespace {
 		return &logical.Response{
 			Data: map[string]interface{}{
 				"error": "illegal namespace",
@@ -102,20 +107,18 @@ func (b *backend) handleCreateToken(ctx context.Context, req *logical.Request, d
 		}, nil
 	}
 
-	//store t
-	tokenInfo := struct {
-		Uuid  string
-		Label string
-	}{}
-	ce, err := logical.StorageEntryJSON(tokenStoragePath(c.Username), c)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", fmtErrConfMarshal, err)
-	}
-	if err = req.Storage.Put(ctx, ce); err != nil {
-		return nil, fmt.Errorf("%s: %w", fmtErrConfPersist, err)
-	}
-
 	return &logical.Response{
+		Secret: &logical.Secret{
+			LeaseOptions: logical.LeaseOptions{
+				TTL:       c.TTL,
+				Renewable: false,
+				MaxTTL:    c.MaxTTL,
+			},
+			InternalData: map[string]interface{}{
+				tokenUuid:     t.Uuid,
+				tokenUsername: c.Username,
+			},
+		},
 		Data: map[string]interface{}{
 			"token": t.Token,
 			"uuid":  t.Uuid,
@@ -123,14 +126,24 @@ func (b *backend) handleCreateToken(ctx context.Context, req *logical.Request, d
 	}, nil
 }
 
-func tokenStoragePath(label) {
-	return fmt.Sprintf("token/")
-}
-
 func (b *backend) handleRevokeToken(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	return nil, nil
-}
-
-func (b *backend) handleListToken(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	u := getStringFrom(data, tokenUsername)
+	uuid := getStringFrom(data, tokenUuid)
+	c, err := b.Config(ctx, u, req.Storage)
+	if err != nil {
+		return &logical.Response{
+			Data: map[string]interface{}{
+				"error": err.Error(),
+			},
+		}, nil
+	}
+	err = c.DeleteToken(ctx, uuid)
+	if err != nil {
+		return &logical.Response{
+			Data: map[string]interface{}{
+				"error": err.Error(),
+			},
+		}, nil
+	}
 	return nil, nil
 }
