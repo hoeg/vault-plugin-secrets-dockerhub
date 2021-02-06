@@ -34,7 +34,7 @@ const pathConfigHelpSyn = `
 Configure the Docker Hub secrets plugin.
 `
 
-const defaultTTL time.Duration = 60 //seconds
+const defaultTTL time.Duration = 5 * time.Minute
 
 var pathConfigHelpDesc = fmt.Sprintf(``)
 
