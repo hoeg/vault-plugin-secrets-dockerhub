@@ -3,6 +3,7 @@ package dockerhub
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
@@ -32,6 +33,8 @@ const (
 const pathConfigHelpSyn = `
 Configure the Docker Hub secrets plugin.
 `
+
+const defaultTTL time.Duration = 60 //seconds
 
 var pathConfigHelpDesc = fmt.Sprintf(``)
 
@@ -93,9 +96,11 @@ func (b *backend) configPaths() []*framework.Path {
 
 //Config holds to values needed to issue a new Docker Hub access token
 type Config struct {
-	Namespace string `json:"namespace"`
-	Username  string `json:"username"`
-	Password  string `json:"password"`
+	Namespace string        `json:"namespace"`
+	Username  string        `json:"username"`
+	Password  string        `json:"password"`
+	TTL       time.Duration `json:"ttl"`
+	MaxTTL    time.Duration `json:"max_ttl"`
 }
 
 func (b *backend) Config(ctx context.Context, username string, s logical.Storage) (*Config, error) {
@@ -121,6 +126,7 @@ func (b *backend) handleCreateConfig(ctx context.Context, req *logical.Request, 
 	c.Username = getStringFrom(data, configUsername)
 	c.Password = getStringFrom(data, configPassword)
 	c.Namespace = getStringFrom(data, configNamespace)
+	c.TTL = defaultTTL
 
 	fmt.Printf("Config is: %v/n", c)
 
@@ -164,12 +170,9 @@ func (b *backend) handleReadConfig(ctx context.Context, req *logical.Request, da
 	if v := c.Namespace; v != "" {
 		resp["namespace"] = v
 	}
+	resp["ttl"] = c.TTL
 
 	return &logical.Response{
 		Data: resp,
 	}, nil
 }
-
-git filter-branch --force --index-filter \
-  "git rm --cached --ignore-unmatch client_test.go" \
-  --prune-empty --tag-name-filter cat -- --all
