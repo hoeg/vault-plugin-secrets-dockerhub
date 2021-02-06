@@ -1,6 +1,6 @@
 # Vault Secrets Plugin for Docker Hub
 
-<img src="https://imgflip.com/i/4wystw.jpg" height="75%" width="75%"/>
+![rest](https://github.com/hoeg/vault-plugin-secrets-dockerhub/blob/master/pics/4wysdl.jpg)
 
 Docker is used in many CI/CD piplines and accessing your private repositories should be made possible in a secure way. Using username and password for this is bad since these credentials have way to broad permissions.
 
