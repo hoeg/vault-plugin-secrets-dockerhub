@@ -23,11 +23,10 @@ build:
 start:
 	vault server -dev -dev-root-token-id=root -dev-plugin-dir=./vault/plugins
 
-register:
-	SHASUM=$(shell shasum -a 256 $(BIN) | cut -d " " -f1) \
-	vault write sys/plugins/catalog/${PLUGIN_NAME} sha_256=$$(SHASUM) command="$(PLUGIN_NAME)"
+register: build
+	vault write sys/plugins/catalog/$(PLUGIN_NAME) sha_256=$(shell shasum -a 256 $(BIN) | cut -d " " -f1) command="$(PLUGIN_NAME)"
 
-enable:
+enable: register
 	vault secrets enable -path=dockerhub ${PLUGIN_NAME}
 
 clean:
