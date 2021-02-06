@@ -55,7 +55,7 @@ func (b *backend) configPaths() []*framework.Path {
 					Type:        framework.TypeString,
 					Description: descConfigPassword,
 					Required:    true,
-				},			
+				},
 				"ttl": {
 					Type:        framework.TypeDurationSecond,
 					Description: "Default lease for generated keys. If <= 0, will use system default.",
@@ -69,18 +69,19 @@ func (b *backend) configPaths() []*framework.Path {
 			Operations: map[logical.Operation]framework.OperationHandler{
 				logical.CreateOperation: &framework.PathOperation{
 					Callback: b.handleCreateConfig,
+					Summary:  "Create a configuration for Docker Hub.",
 				},
 				logical.DeleteOperation: &framework.PathOperation{
 					Callback: b.handleDeleteConfig,
 					Summary:  "Deletes the secret at the specified location.",
 				},
-				logical.RevokeOperation: &framework.PathOperation{
-					Callback: b.handleRevokeConfig,
-					Summary:  "Revoke access token for Docker Hub.",
+				logical.ReadOperation: &framework.PathOperation{
+					Callback: b.handleReadConfig,
+					Summary:  "Read the configuration for Docker Hub access tokens for a specific user.",
 				},
-				logical.ListOperation: &framework.PathOperation{
-					Callback: b.handleListConfig,
-					Summary:  "List configurations for Docker Hub access tokens.",
+				logical.UpdateOperation: &framework.PathOperation{
+					Callback: b.handleCreateConfig,
+					Summary:  "Update an existing configuration for Docker Hub.",
 				},
 			},
 			HelpSynopsis:    pathConfigHelpSyn,
@@ -92,9 +93,28 @@ func (b *backend) configPaths() []*framework.Path {
 
 //Config holds to values needed to issue a new Docker Hub access token
 type Config struct {
-	Namespace string
-	Username  string
-	Password  string
+	Namespace string `json:"namespace"`
+	Username  string `json:"username"`
+	Password  string `json:"password"`
+}
+
+func (b *backend) Config(ctx context.Context, s logical.Storage) (*Config, error) {
+	c := &Config{}
+
+	entry, err := s.Get(ctx, pathPatternConfig)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", fmtErrConfRetrieval, err)
+	}
+
+	if entry == nil || len(entry.Value) == 0 {
+		return c, nil
+	}
+
+	if err := entry.DecodeJSON(&c); err != nil {
+		return nil, fmt.Errorf("%s: %w", fmtErrConfUnmarshal, err)
+	}
+
+	return c, nil
 }
 
 func (b *backend) handleCreateConfig(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
@@ -127,33 +147,32 @@ func (b *backend) handleCreateConfig(ctx context.Context, req *logical.Request, 
 	return nil, nil
 }
 
-func (b *backend) Config(ctx context.Context, s logical.Storage) (*Config, error) {
-	c := &Config{}
-
-	entry, err := s.Get(ctx, pathPatternConfig)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", fmtErrConfRetrieval, err)
-	}
-
-	if entry == nil || len(entry.Value) == 0 {
-		return c, nil
-	}
-
-	if err := entry.DecodeJSON(&c); err != nil {
-		return nil, fmt.Errorf("%s: %w", fmtErrConfUnmarshal, err)
-	}
-
-	return c, nil
-}
-
 func (b *backend) handleDeleteConfig(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	return nil, nil
+	return nil, req.Storage.Delete(ctx, pathPatternConfig)
 }
 
-func (b *backend) handleRevokeConfig(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	return nil, nil
-}
+func (b *backend) handleReadConfig(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	c, err := b.Config(ctx, req.Storage)
+	if err != nil {
+		return nil, err
+	}
+	if c == nil {
+		return nil, nil
+	}
 
-func (b *backend) handleListConfig(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	return nil, nil
+	resp := make(map[string]interface{})
+
+	if v := c.Username; v != "" {
+		resp["username"] = v
+	}
+	if v := c.Password; v != "" {
+		resp["password"] = v
+	}
+	if v := c.Namespace; v != "" {
+		resp["namespace"] = v
+	}
+
+	return &logical.Response{
+		Data: resp,
+	}, nil
 }

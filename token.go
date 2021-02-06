@@ -10,7 +10,7 @@ import (
 
 // pathPatternConfig is the string used to define the base path of the config
 // endpoint as well as the storage path of the config object.
-const pathPatternToken = "token"
+var pathPatternToken = fmt.Sprint("token/(%s)", tokenNamespace)
 
 const (
 	fmtErrTokenMarshal = "failed to marshal token to JSON"
@@ -50,6 +50,10 @@ func (b *backend) tokenPaths() []*framework.Path {
 
 			Operations: map[logical.Operation]framework.OperationHandler{
 				logical.CreateOperation: &framework.PathOperation{
+					Callback: b.handleCreateToken,
+					Summary:  "Issue a new access token to Docker Hub.",
+				},
+				logical.UpdateOperation: &framework.PathOperation{
 					Callback: b.handleCreateToken,
 					Summary:  "Issue a new access token to Docker Hub.",
 				},
