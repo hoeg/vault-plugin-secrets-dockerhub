@@ -8,9 +8,9 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
-// pathPatternConfig is the string used to define the base path of the config
+// pathPatternToken is the string used to define the base path of the config
 // endpoint as well as the storage path of the config object.
-var pathPatternToken = fmt.Sprint("token/(%s)/(%s)", tokenUsername, tokenNamespace)
+var pathPatternToken = fmt.Sprintf("token/(%s)/(%s)", framework.GenericNameRegex(tokenUsername), framework.GenericNameRegex(tokenNamespace))
 
 const (
 	fmtErrTokenMarshal = "failed to marshal token to JSON"
@@ -20,10 +20,10 @@ const (
 
 const (
 	tokenUsername      = "username"
-	descTokenUsername  = ""
+	descTokenUsername  = "Username that has access to the namespace."
 	tokenNamespace     = "namespace"
 	descTokenNamespace = "Docker namespace to issue a token to."
-	tokenLabel         = "token-label"
+	tokenLabel         = "label"
 	descTokenLabel     = "Name for the token to create."
 )
 
@@ -36,8 +36,8 @@ Issue an access token to Docker Hub for given namespace.`)
 
 func (b *backend) tokenPaths() []*framework.Path {
 	return []*framework.Path{
-		{
-			Pattern: pathPatternConfig,
+		&framework.Path{
+			Pattern: pathPatternToken,
 
 			Fields: map[string]*framework.FieldSchema{
 				tokenUsername: {
@@ -84,11 +84,11 @@ func (b *backend) handleCreateToken(ctx context.Context, req *logical.Request, d
 	ns := getStringFrom(data, tokenNamespace)
 	l := getStringFrom(data, tokenLabel)
 
-	c, err := NewClient(u, ns, &req.Storage)
-	if err != nil {
+	config := b.Config(u)
+	if ns != config.Namespace {
 		return &logical.Response{
 			Data: map[string]interface{}{
-				"error": err.Error(),
+				"error": "illegal namespace",
 			},
 		}, nil
 	}
@@ -102,7 +102,18 @@ func (b *backend) handleCreateToken(ctx context.Context, req *logical.Request, d
 		}, nil
 	}
 
-	//store uuid + label
+	//store t
+	tokenInfo := struct {
+		Uuid  string
+		Label string
+	}{}
+	ce, err := logical.StorageEntryJSON(tokenStoragePath(c.Username), c)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", fmtErrConfMarshal, err)
+	}
+	if err = req.Storage.Put(ctx, ce); err != nil {
+		return nil, fmt.Errorf("%s: %w", fmtErrConfPersist, err)
+	}
 
 	return &logical.Response{
 		Data: map[string]interface{}{
@@ -110,6 +121,10 @@ func (b *backend) handleCreateToken(ctx context.Context, req *logical.Request, d
 			"uuid":  t.Uuid,
 		},
 	}, nil
+}
+
+func tokenStoragePath(label) {
+	return fmt.Sprintf("token/")
 }
 
 func (b *backend) handleRevokeToken(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {

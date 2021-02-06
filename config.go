@@ -10,7 +10,7 @@ import (
 
 // pathPatternConfig is the string used to define the base path of the config
 // endpoint as well as the storage path of the config object.
-var pathPatternConfig = fmt.Sprintf("config/(%s)", configUsername)
+var pathPatternConfig = fmt.Sprintf("config/%s", framework.GenericNameRegex(configUsername))
 
 const (
 	fmtErrConfRetrieval = "failed to get configuration from storage"
@@ -37,7 +37,7 @@ var pathConfigHelpDesc = fmt.Sprintf(``)
 
 func (b *backend) configPaths() []*framework.Path {
 	return []*framework.Path{
-		{
+		&framework.Path{
 			Pattern: pathPatternConfig,
 
 			Fields: map[string]*framework.FieldSchema{
@@ -98,10 +98,9 @@ type Config struct {
 	Password  string `json:"password"`
 }
 
-func (b *backend) Config(ctx context.Context, s logical.Storage) (*Config, error) {
+func (b *backend) Config(ctx context.Context, username string, s logical.Storage) (*Config, error) {
 	c := &Config{}
-
-	entry, err := s.Get(ctx, pathPatternConfig)
+	entry, err := s.Get(ctx, getStorePath(username))
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", fmtErrConfRetrieval, err)
 	}
@@ -118,18 +117,14 @@ func (b *backend) Config(ctx context.Context, s logical.Storage) (*Config, error
 }
 
 func (b *backend) handleCreateConfig(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	c, err := b.Config(ctx, req.Storage)
-	if err != nil {
-		return nil, err
-	}
-
-	c.Namespace = getStringFrom(data, configNamespace)
+	c := Config{}
 	c.Username = getStringFrom(data, configUsername)
 	c.Password = getStringFrom(data, configPassword)
+	c.Namespace = getStringFrom(data, configNamespace)
 
 	fmt.Printf("Config is: %v/n", c)
 
-	ce, err := logical.StorageEntryJSON(pathPatternConfig, c)
+	ce, err := logical.StorageEntryJSON(getStorePath(c.Username), c)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", fmtErrConfMarshal, err)
 	}
@@ -140,11 +135,17 @@ func (b *backend) handleCreateConfig(ctx context.Context, req *logical.Request, 
 }
 
 func (b *backend) handleDeleteConfig(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	return nil, req.Storage.Delete(ctx, pathPatternConfig)
+	u := getStringFrom(data, configUsername)
+	return nil, req.Storage.Delete(ctx, getStorePath(u))
+}
+
+func getStorePath(u string) string {
+	return fmt.Sprintf("config/%s", u)
 }
 
 func (b *backend) handleReadConfig(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	c, err := b.Config(ctx, req.Storage)
+	u := getStringFrom(data, configUsername)
+	c, err := b.Config(ctx, u, req.Storage)
 	if err != nil {
 		return nil, err
 	}
@@ -168,3 +169,7 @@ func (b *backend) handleReadConfig(ctx context.Context, req *logical.Request, da
 		Data: resp,
 	}, nil
 }
+
+git filter-branch --force --index-filter \
+  "git rm --cached --ignore-unmatch client_test.go" \
+  --prune-empty --tag-name-filter cat -- --all

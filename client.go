@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-
-	"github.com/hashicorp/vault/sdk/logical"
 )
 
 const (
@@ -16,18 +14,13 @@ const (
 	apiTokenEndpoint = "https://hub.docker.com/v2/api_tokens"
 )
 
-type Client struct{}
-
-func NewClient(namespace string, s *logical.Storage) (*Client, error) {
-	return nil, nil
-}
-
 type DockerHubToken struct {
 	Uuid  string `json:"uuid"`
 	Token string `json:"token"`
 }
 
-func (c Client) newToken(ctx context.Context, label string) (DockerHubToken, error) {
+// NewToken creates new access token and stores the uuid together with the label for lookup.
+func (c Config) NewToken(ctx context.Context, label string) (DockerHubToken, error) {
 	apiToken, err := c.dockerHubAuth(ctx)
 	if err != nil {
 		return DockerHubToken{}, err
@@ -48,7 +41,7 @@ func (c Client) newToken(ctx context.Context, label string) (DockerHubToken, err
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "vault-docker-hub-secret")
 	req.AddCookie(&http.Cookie{Name: "token", Value: apiToken})
-	req.AddCookie(&http.Cookie{Name: "namespace", Value: c.Namespace})
+	req.AddCookie(&http.Cookie{Name: "namespace", Value: c.namespace})
 
 	httpClient := http.Client{}
 	resp, err := httpClient.Do(req)
@@ -56,7 +49,7 @@ func (c Client) newToken(ctx context.Context, label string) (DockerHubToken, err
 		return DockerHubToken{}, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusCreated {
 		return DockerHubToken{}, fmt.Errorf("failed to createauth token: %d", resp.StatusCode)
 	}
 	b, err := ioutil.ReadAll(resp.Body)
@@ -71,7 +64,8 @@ func (c Client) newToken(ctx context.Context, label string) (DockerHubToken, err
 	return t, nil
 }
 
-func (c Client) deleteToken(ctx context.Context, uuid string) error {
+// DeleteToken will delete at token that is associated with the uuid.
+func (c Config) DeleteToken(ctx context.Context, uuid string) error {
 	apiToken, err := c.dockerHubAuth(ctx)
 	if err != nil {
 		return err
@@ -83,7 +77,7 @@ func (c Client) deleteToken(ctx context.Context, uuid string) error {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "vault-docker-hub-secret")
 	req.AddCookie(&http.Cookie{Name: "token", Value: apiToken})
-	req.AddCookie(&http.Cookie{Name: "namespace", Value: c.Namespace})
+	req.AddCookie(&http.Cookie{Name: "namespace", Value: c.namespace})
 
 	httpClient := http.Client{}
 	resp, err := httpClient.Do(req)
@@ -97,13 +91,13 @@ func (c Client) deleteToken(ctx context.Context, uuid string) error {
 	return nil
 }
 
-func (c Client) dockerHubAuth(ctx context.Context) (string, error) {
+func (c Config) dockerHubAuth(ctx context.Context) (string, error) {
 	login := struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
 	}{
-		Username: c.Username,
-		Password: c.Password,
+		Username: c.username,
+		Password: c.password,
 	}
 	payload, err := json.Marshal(login)
 	if err != nil {

@@ -12,13 +12,13 @@ endif
 
 .DEFAULT_GOAL := all
 
-PLUGIN_NAME=vault-plugin-secrets-dockerhub
+PLUGIN_NAME=dockerhub
 BIN=./vault/plugins/$(PLUGIN_NAME)
 
 all: fmt build start
 
 build:
-	GOOS=$(OS) GOARCH="$(GOARCH)" go build -o $(BIN) cmd/vault-plugin-secrets-dockerhub/main.go
+	GOOS=$(OS) GOARCH="$(GOARCH)" go build -o $(BIN) cmd/dockerhub/main.go
 
 start:
 	vault server -dev -dev-root-token-id=root -dev-plugin-dir=./vault/plugins -log-level=debug
