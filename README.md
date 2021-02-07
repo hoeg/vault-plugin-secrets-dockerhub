@@ -10,14 +10,18 @@ To use the plugin you must rigster it. See the [Hashicorp Vault documentation](h
 
 ### Configure DockerHub account
 
-`vault write dockerhub/config/<username> password=<password> namespace=<namespace>` where namespace is a comma separated list of namespaces.
+```vault write dockerhub/config/<username> password=<password> namespace=<namespace>``` where namespace is a comma separated list of namespaces.
 
 `ttl` is optional. If it is not provided it will be set to the default `ttl` which is 5 minutes.
 
-You can read the permissions using `vault read dockerhub/config/<username>`. The password will not be shown. Also it is not possible to update en existing configuration but a new one can be created. No validity checks are made when the config is written.
+You can read the permissions using
+
+```vault read dockerhub/config/<username>```
+
+ The password will not be shown. Also it is not possible to update en existing configuration but a new one can be created. No validity checks are made when the config is written.
 
 ### Creating tokens
 
-`vault write dockerhub/token/<username>/<namespace> label=<token label>`
+```vault write dockerhub/token/<username>/<namespace> label=<token label>```
 
 By having namespace as part of the path it is possible to restrict which namespace vault users are allowed to create credentials for.
