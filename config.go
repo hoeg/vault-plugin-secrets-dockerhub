@@ -160,9 +160,6 @@ func (b *backend) handleReadConfig(ctx context.Context, req *logical.Request, da
 	if v := c.Username; v != "" {
 		resp["username"] = v
 	}
-	if v := c.Password; v != "" {
-		resp["password"] = v
-	}
 	if v := c.Namespace; v != nil {
 		resp["namespace"] = v
 	}
