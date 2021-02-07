@@ -105,9 +105,10 @@ func (b *backend) handleCreateToken(ctx context.Context, req *logical.Request, d
 				Renewable: false,
 			},
 			InternalData: map[string]interface{}{
-				"secret_type": "DockerHub",
-				tokenUsername: c.Username,
-				tokenUUID:     t.UUID,
+				"secret_type":  "DockerHub",
+				tokenUsername:  c.Username,
+				tokenNamespace: ns,
+				tokenUUID:      t.UUID,
 			},
 		},
 		Data: map[string]interface{}{
