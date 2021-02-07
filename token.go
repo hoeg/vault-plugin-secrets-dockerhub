@@ -39,7 +39,7 @@ Issue an access token to Docker Hub for given namespace.`)
 
 func (b *backend) tokenPaths() []*framework.Path {
 	return []*framework.Path{
-		&framework.Path{
+		{
 			Pattern: pathPatternToken,
 
 			Fields: map[string]*framework.FieldSchema{
@@ -83,15 +83,15 @@ func (b *backend) handleCreateToken(ctx context.Context, req *logical.Request, d
 	ns := getStringFrom(data, tokenNamespace)
 	l := getStringFrom(data, tokenLabel)
 
-	c, err := b.Config(ctx, u, ns, req.Storage)
+	c, err := b.Config(ctx, u, req.Storage)
 	if err != nil {
 		return nil, err
 	}
-	if ns != c.Namespace {
+	if isValidNamespace(ns, c.Namespace) {
 		return nil, err
 	}
 
-	t, err := c.NewToken(ctx, l)
+	t, err := c.NewToken(ctx, l, ns)
 	if err != nil {
 		return nil, err
 	}
@@ -114,22 +114,31 @@ func (b *backend) handleCreateToken(ctx context.Context, req *logical.Request, d
 			"token":        t.Token,
 			tokenUUID:      t.UUID,
 			tokenUsername:  c.Username,
-			tokenNamespace: c.Namespace,
+			tokenNamespace: ns,
 		},
 	}, nil
 }
 
 func (b *backend) handleRevokeToken(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 	u := getStringFrom(data, tokenUsername)
-	ns := getStringFrom(data, tokenNamespace)
 	UUID := getStringFrom(data, tokenUUID)
-	c, err := b.Config(ctx, u, ns, req.Storage)
+	ns := getStringFrom(data, tokenNamespace)
+	c, err := b.Config(ctx, u, req.Storage)
 	if err != nil {
 		return nil, err
 	}
-	err = c.DeleteToken(ctx, UUID)
+	err = c.DeleteToken(ctx, UUID, ns)
 	if err != nil {
 		return nil, err
 	}
 	return nil, nil
+}
+
+func isValidNamespace(ns string, validNs []string) bool {
+	for _, n := range validNs {
+		if n == ns {
+			return true
+		}
+	}
+	return false
 }

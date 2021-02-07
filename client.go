@@ -20,7 +20,7 @@ type DockerHubToken struct {
 }
 
 // NewToken creates new access token and stores the uuid together with the label for lookup.
-func (c Config) NewToken(ctx context.Context, label string) (DockerHubToken, error) {
+func (c Config) NewToken(ctx context.Context, label, namespace string) (DockerHubToken, error) {
 	apiToken, err := c.dockerHubAuth(ctx)
 	if err != nil {
 		return DockerHubToken{}, err
@@ -41,7 +41,7 @@ func (c Config) NewToken(ctx context.Context, label string) (DockerHubToken, err
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "vault-docker-hub-secret")
 	req.AddCookie(&http.Cookie{Name: "token", Value: apiToken})
-	req.AddCookie(&http.Cookie{Name: "namespace", Value: c.Namespace})
+	req.AddCookie(&http.Cookie{Name: "namespace", Value: namespace})
 
 	httpClient := http.Client{}
 	resp, err := httpClient.Do(req)
@@ -65,7 +65,7 @@ func (c Config) NewToken(ctx context.Context, label string) (DockerHubToken, err
 }
 
 // DeleteToken will delete at token that is associated with the uuid.
-func (c Config) DeleteToken(ctx context.Context, UUID string) error {
+func (c Config) DeleteToken(ctx context.Context, UUID, namespace string) error {
 	apiToken, err := c.dockerHubAuth(ctx)
 	if err != nil {
 		return err
@@ -77,7 +77,7 @@ func (c Config) DeleteToken(ctx context.Context, UUID string) error {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "vault-docker-hub-secret")
 	req.AddCookie(&http.Cookie{Name: "token", Value: apiToken})
-	req.AddCookie(&http.Cookie{Name: "namespace", Value: c.Namespace})
+	req.AddCookie(&http.Cookie{Name: "namespace", Value: namespace})
 
 	httpClient := http.Client{}
 	resp, err := httpClient.Do(req)

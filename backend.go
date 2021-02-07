@@ -59,7 +59,7 @@ func newBackend() (*backend, error) {
 			b.tokenPaths(),
 		),
 		Secrets: []*framework.Secret{
-			&framework.Secret{
+			{
 				Type:            "DockerHub",
 				DefaultDuration: defaultTTL,
 				Revoke:          b.handleRevokeToken,
