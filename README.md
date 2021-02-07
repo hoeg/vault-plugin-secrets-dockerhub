@@ -25,3 +25,8 @@ You can read the permissions using
 ```vault write dockerhub/token/<username>/<namespace> label=<token label>```
 
 By having namespace as part of the path it is possible to restrict which namespace vault users are allowed to create credentials for.
+
+
+### Disclaimer
+
+This plugin is build as an educational exercise to learn about the Hashicorp Vault plugin structure. No garuantees are made about its security or stability (see the lack of tests). Use at your own risk...
