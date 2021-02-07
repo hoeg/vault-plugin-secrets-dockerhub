@@ -10,9 +10,13 @@ To use the plugin you must rigster it. See the [Hashicorp Vault documentation](h
 
 ### Configure DockerHub account
 
+First configure the credentials for the DockerHub account you want credentials from:
+
 ```
 vault write dockerhub/config/<username> password=<password> namespace=<namespace>
-``` where namespace is a comma separated list of namespaces.
+```
+
+ where namespace is a comma separated list of namespaces.
 
 `ttl` is optional. If it is not provided it will be set to the default `ttl` which is 5 minutes.
 
@@ -25,6 +29,8 @@ vault read dockerhub/config/<username>
  The password will not be shown. Also it is not possible to update en existing configuration but a new one can be created. No validity checks are made when the config is written.
 
 ### Creating tokens
+
+Tokens issued by Vault will be revoked automatically after the `ttl` has expired. To issue a token run:
 
 ```
 vault write dockerhub/token/<username>/<namespace> label=<token label>
