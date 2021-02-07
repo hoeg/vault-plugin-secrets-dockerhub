@@ -87,7 +87,7 @@ func (b *backend) handleCreateToken(ctx context.Context, req *logical.Request, d
 	if err != nil {
 		return nil, err
 	}
-	if isValidNamespace(ns, c.Namespace) {
+	if !isValidNamespace(ns, c.Namespace) {
 		return nil, err
 	}
 
