@@ -36,7 +36,7 @@ const pathConfigHelpSyn = `
 Configure the Docker Hub secrets plugin.
 `
 
-const defaultTTL time.Duration = time.Duration(5 * 60)
+const defaultTTL time.Duration = 5 * time.Minute
 
 var pathConfigHelpDesc = fmt.Sprintf(``)
 
@@ -166,7 +166,7 @@ func (b *backend) handleReadConfig(ctx context.Context, req *logical.Request, da
 	if v := c.Namespace; v != nil {
 		resp["namespace"] = v
 	}
-	resp["ttl"] = c.TTL
+	resp["ttl"] = c.TTL.String()
 
 	return &logical.Response{
 		Data: resp,
