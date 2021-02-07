@@ -68,6 +68,10 @@ func newBackend() (*backend, error) {
 						Type:        framework.TypeString,
 						Description: descTokenUsername,
 					},
+					tokenNamespace: {
+						Type:        framework.TypeString,
+						Description: descTokenNamespace,
+					},
 					tokenUUID: {
 						Type:        framework.TypeString,
 						Description: descTokenUUID,
