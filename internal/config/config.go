@@ -93,6 +93,7 @@ func Paths() []*framework.Path {
 			},
 			HelpSynopsis:    pathConfigHelpSyn,
 			HelpDescription: pathConfigHelpDesc,
+			ExistenceCheck:  exists,
 		},
 	}
 }
@@ -188,4 +189,13 @@ func handleList(ctx context.Context, req *logical.Request, data *framework.Field
 	return &logical.Response{
 		Data: resp,
 	}, nil
+}
+
+func exists(ctx context.Context, req *logical.Request, data *framework.FieldData) (bool, error) {
+	out, err := req.Storage.Get(ctx, req.Path)
+	if err != nil {
+		return false, fmt.Errorf("existence check failed: %w", err)
+	}
+
+	return out != nil, nil
 }
