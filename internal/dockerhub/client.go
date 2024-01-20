@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/hoeg/vault-plugin-secrets-dockerhub/internal/config"
 )
 
 const (
@@ -19,8 +21,12 @@ type DockerHubToken struct {
 	Token string `json:"token"`
 }
 
+type Client struct {
+	Conf *config.Config
+}
+
 // NewToken creates new access token and stores the uuid together with the label for lookup.
-func (c Config) NewToken(ctx context.Context, label, namespace string) (DockerHubToken, error) {
+func (c *Client) NewToken(ctx context.Context, label, namespace string) (DockerHubToken, error) {
 	apiToken, err := c.dockerHubAuth(ctx)
 	if err != nil {
 		return DockerHubToken{}, err
@@ -65,7 +71,7 @@ func (c Config) NewToken(ctx context.Context, label, namespace string) (DockerHu
 }
 
 // DeleteToken will delete at token that is associated with the uuid.
-func (c Config) DeleteToken(ctx context.Context, UUID, namespace string) error {
+func (c *Client) DeleteToken(ctx context.Context, UUID, namespace string) error {
 	apiToken, err := c.dockerHubAuth(ctx)
 	if err != nil {
 		return err
@@ -91,13 +97,13 @@ func (c Config) DeleteToken(ctx context.Context, UUID, namespace string) error {
 	return nil
 }
 
-func (c Config) dockerHubAuth(ctx context.Context) (string, error) {
+func (c *Client) dockerHubAuth(ctx context.Context) (string, error) {
 	login := struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
 	}{
-		Username: c.Username,
-		Password: c.Password,
+		Username: c.Conf.Username,
+		Password: c.Conf.Password,
 	}
 	payload, err := json.Marshal(login)
 	if err != nil {

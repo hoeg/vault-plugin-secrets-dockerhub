@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.com/hoeg/vault-plugin-secrets-dockerhub/internal/config"
 )
 
 const dockerHubHelp = `
@@ -54,13 +55,13 @@ func newBackend() (*backend, error) {
 			},
 		},
 		Paths: framework.PathAppend(
-			b.configPaths(),
+			config.Paths(),
 			b.tokenPaths(),
 		),
 		Secrets: []*framework.Secret{
 			{
 				Type:            "DockerHub",
-				DefaultDuration: defaultTTL,
+				DefaultDuration: config.DefaultTTL,
 				Revoke:          b.handleRevokeToken,
 				Fields: map[string]*framework.FieldSchema{
 					tokenUsername: {

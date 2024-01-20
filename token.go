@@ -7,6 +7,8 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.com/hoeg/vault-plugin-secrets-dockerhub/internal/config"
+	"github.com/hoeg/vault-plugin-secrets-dockerhub/internal/dockerhub"
 )
 
 // pathPatternToken is the string used to define the base path of the config
@@ -78,11 +80,11 @@ func (b *backend) tokenPaths() []*framework.Path {
 }
 
 func (b *backend) handleCreateToken(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	u := getStringFrom(data, tokenUsername)
-	ns := getStringFrom(data, tokenNamespace)
-	l := getStringFrom(data, tokenLabel)
+	u := data.Get(tokenUsername).(string)
+	ns := data.Get(tokenNamespace).(string)
+	l := data.Get(tokenLabel).(string)
 
-	c, err := b.Config(ctx, u, req.Storage)
+	c, err := config.RetrieveConfig(ctx, u, req.Storage)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +92,11 @@ func (b *backend) handleCreateToken(ctx context.Context, req *logical.Request, d
 		return nil, err
 	}
 
-	t, err := c.NewToken(ctx, l, ns)
+	dc := dockerhub.Client{
+		Conf: c,
+	}
+
+	t, err := dc.NewToken(ctx, l, ns)
 	if err != nil {
 		return nil, err
 	}
@@ -120,14 +126,20 @@ func (b *backend) handleCreateToken(ctx context.Context, req *logical.Request, d
 }
 
 func (b *backend) handleRevokeToken(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	u := getStringFrom(data, tokenUsername)
-	UUID := getStringFrom(data, tokenUUID)
-	ns := getStringFrom(data, tokenNamespace)
-	c, err := b.Config(ctx, u, req.Storage)
+	u := data.Get(tokenUsername).(string)
+	UUID := data.Get(tokenUUID).(string)
+	ns := data.Get(tokenNamespace).(string)
+
+	c, err := config.RetrieveConfig(ctx, u, req.Storage)
 	if err != nil {
 		return nil, err
 	}
-	err = c.DeleteToken(ctx, UUID, ns)
+
+	dc := dockerhub.Client{
+		Conf: c,
+	}
+
+	err = dc.DeleteToken(ctx, UUID, ns)
 	if err != nil {
 		return nil, err
 	}
