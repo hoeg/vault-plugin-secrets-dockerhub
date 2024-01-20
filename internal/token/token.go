@@ -16,12 +16,6 @@ import (
 var pathPatternToken = fmt.Sprintf("token/(%s)/(%s)", framework.GenericNameRegex(Username), framework.GenericNameRegex(Namespace))
 
 const (
-	fmtErrTokenMarshal = "failed to marshal token to JSON"
-	fmtErrTokenPersist = "failed to persist token to storage"
-	fmtErrTokenDelete  = "failed to delete token from storage"
-)
-
-const (
 	Username           = "username"
 	DescTokenUsername  = "Username that has access to the namespace."
 	Namespace          = "namespace"
