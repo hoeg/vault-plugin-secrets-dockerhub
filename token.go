@@ -34,8 +34,7 @@ const pathTokenHelpSyn = `
 
 `
 
-var pathTokenHelpDesc = fmt.Sprintf(`
-Issue an access token to Docker Hub for given namespace.`)
+var pathTokenHelpDesc = "Issue an access token to Docker Hub for given namespace."
 
 func (b *backend) tokenPaths() []*framework.Path {
 	return []*framework.Path{

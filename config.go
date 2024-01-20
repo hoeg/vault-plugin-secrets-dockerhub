@@ -85,6 +85,10 @@ func (b *backend) configPaths() []*framework.Path {
 					Callback: b.handleCreateConfig,
 					Summary:  "Update an existing configuration for Docker Hub.",
 				},
+				logical.ListOperation: &framework.PathOperation{
+					Callback: b.handleListConfig,
+					Summary:  "List all configurations for the Docker Hub engine.",
+				},
 			},
 			HelpSynopsis:    pathConfigHelpSyn,
 			HelpDescription: pathConfigHelpDesc,
@@ -170,6 +174,6 @@ func (b *backend) handleReadConfig(ctx context.Context, req *logical.Request, da
 	}, nil
 }
 
-func (b *backend) handleListConfig(ctx context.Context, req *logical.Request) (*logical.Response, error) {
+func (b *backend) handleListConfig(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 	return nil, nil
 }
