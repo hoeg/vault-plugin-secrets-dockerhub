@@ -1,4 +1,4 @@
-package dockerhub
+package token
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 
 // pathPatternToken is the string used to define the base path of the config
 // endpoint as well as the storage path of the config object.
-var pathPatternToken = fmt.Sprintf("token/(%s)/(%s)", framework.GenericNameRegex(tokenUsername), framework.GenericNameRegex(tokenNamespace))
+var pathPatternToken = fmt.Sprintf("token/(%s)/(%s)", framework.GenericNameRegex(Username), framework.GenericNameRegex(Namespace))
 
 const (
 	fmtErrTokenMarshal = "failed to marshal token to JSON"
@@ -22,14 +22,14 @@ const (
 )
 
 const (
-	tokenUsername      = "username"
-	descTokenUsername  = "Username that has access to the namespace."
-	tokenNamespace     = "namespace"
-	descTokenNamespace = "Docker namespace to issue a token to."
-	tokenLabel         = "label"
-	descTokenLabel     = "Name for the token to create."
-	tokenUUID          = "uuid"
-	descTokenUUID      = "The uuid for a generated token. Used for revokation."
+	Username           = "username"
+	DescTokenUsername  = "Username that has access to the namespace."
+	Namespace          = "namespace"
+	DescTokenNamespace = "Docker namespace to issue a token to."
+	Label              = "label"
+	DescTokenLabel     = "Name for the token to create."
+	UUID               = "uuid"
+	DescTokenUUID      = "The uuid for a generated token. Used for revokation."
 )
 
 const pathTokenHelpSyn = `
@@ -38,51 +38,60 @@ const pathTokenHelpSyn = `
 
 var pathTokenHelpDesc = "Issue an access token to Docker Hub for given namespace."
 
-func (b *backend) tokenPaths() []*framework.Path {
+func Paths() []*framework.Path {
 	return []*framework.Path{
 		{
 			Pattern: pathPatternToken,
 
 			Fields: map[string]*framework.FieldSchema{
-				tokenUsername: {
+				Username: {
 					Type:        framework.TypeString,
-					Description: descTokenUsername,
+					Description: DescTokenUsername,
 				},
-				tokenNamespace: {
+				Namespace: {
 					Type:        framework.TypeString,
-					Description: descTokenNamespace,
+					Description: DescTokenNamespace,
 				},
-				tokenLabel: {
+				Label: {
 					Type:        framework.TypeString,
-					Description: descTokenLabel,
+					Description: DescTokenLabel,
 				},
 			},
 
 			Operations: map[logical.Operation]framework.OperationHandler{
 				logical.CreateOperation: &framework.PathOperation{
-					Callback: b.handleCreateToken,
+					Callback: handleCreate,
 					Summary:  "Issue a new access token to Docker Hub.",
 				},
 				logical.UpdateOperation: &framework.PathOperation{
-					Callback: b.handleCreateToken,
+					Callback: handleCreate,
 					Summary:  "Issue a new access token to Docker Hub.",
 				},
 				logical.RevokeOperation: &framework.PathOperation{
-					Callback: b.handleRevokeToken,
+					Callback: HandleRevoke,
 					Summary:  "Revoke access token for Docker Hub.",
 				},
 			},
 			HelpSynopsis:    pathTokenHelpSyn,
 			HelpDescription: pathTokenHelpDesc,
-			ExistenceCheck:  b.handleExistenceCheck,
+			ExistenceCheck:  handleExistenceCheck,
 		},
 	}
 }
 
-func (b *backend) handleCreateToken(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	u := data.Get(tokenUsername).(string)
-	ns := data.Get(tokenNamespace).(string)
-	l := data.Get(tokenLabel).(string)
+func handleExistenceCheck(ctx context.Context, req *logical.Request, data *framework.FieldData) (bool, error) {
+	out, err := req.Storage.Get(ctx, req.Path)
+	if err != nil {
+		return false, fmt.Errorf("existence check failed: %w", err)
+	}
+
+	return out != nil, nil
+}
+
+func handleCreate(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	u := data.Get(Username).(string)
+	ns := data.Get(Namespace).(string)
+	l := data.Get(Label).(string)
 
 	c, err := config.RetrieveConfig(ctx, u, req.Storage)
 	if err != nil {
@@ -110,25 +119,25 @@ func (b *backend) handleCreateToken(ctx context.Context, req *logical.Request, d
 				Renewable: false,
 			},
 			InternalData: map[string]interface{}{
-				"secret_type":  "DockerHub",
-				tokenUsername:  c.Username,
-				tokenNamespace: ns,
-				tokenUUID:      t.UUID,
+				"secret_type": "DockerHub",
+				Username:      c.Username,
+				Namespace:     ns,
+				UUID:          t.UUID,
 			},
 		},
 		Data: map[string]interface{}{
-			"token":        t.Token,
-			tokenUUID:      t.UUID,
-			tokenUsername:  c.Username,
-			tokenNamespace: ns,
+			"token":   t.Token,
+			UUID:      t.UUID,
+			Username:  c.Username,
+			Namespace: ns,
 		},
 	}, nil
 }
 
-func (b *backend) handleRevokeToken(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	u := data.Get(tokenUsername).(string)
-	UUID := data.Get(tokenUUID).(string)
-	ns := data.Get(tokenNamespace).(string)
+func HandleRevoke(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	u := data.Get(Username).(string)
+	UUID := data.Get(UUID).(string)
+	ns := data.Get(Namespace).(string)
 
 	c, err := config.RetrieveConfig(ctx, u, req.Storage)
 	if err != nil {
