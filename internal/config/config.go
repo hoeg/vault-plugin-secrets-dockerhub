@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -172,5 +173,19 @@ func handleRead(ctx context.Context, req *logical.Request, data *framework.Field
 }
 
 func handleList(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	return nil, nil
+	configs, err := req.Storage.List(ctx, getStorePath(""))
+	if err != nil {
+		return nil, err
+	}
+
+	resp := make(map[string]interface{})
+	for _, sc := range configs {
+		c := Config{}
+		if err := json.Unmarshal([]byte(sc), &c); err != nil {
+			return nil, fmt.Errorf("%s: %w", fmtErrConfUnmarshal, err)
+		}
+	}
+	return &logical.Response{
+		Data: resp,
+	}, nil
 }
