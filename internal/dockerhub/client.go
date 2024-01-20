@@ -13,7 +13,7 @@ import (
 
 const (
 	loginEndpoint    = "https://hub.docker.com/v2/users/login"
-	apiTokenEndpoint = "https://hub.docker.com/v2/api_tokens"
+	apiTokenEndpoint = "https://hub.docker.com/v2/access-tokens"
 )
 
 type DockerHubToken struct {
