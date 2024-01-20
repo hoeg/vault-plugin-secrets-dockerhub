@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -52,7 +52,7 @@ func (c Config) NewToken(ctx context.Context, label, namespace string) (DockerHu
 	if resp.StatusCode != http.StatusCreated {
 		return DockerHubToken{}, fmt.Errorf("failed to createauth token: %d", resp.StatusCode)
 	}
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return DockerHubToken{}, err
 	}
@@ -118,7 +118,7 @@ func (c Config) dockerHubAuth(ctx context.Context) (string, error) {
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("authentication failed: %d", resp.StatusCode)
 	}
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}

@@ -92,7 +92,7 @@ func (b *backend) configPaths() []*framework.Path {
 	}
 }
 
-//Config holds to values needed to issue a new Docker Hub access token
+// Config holds to values needed to issue a new Docker Hub access token
 type Config struct {
 	Namespace []string      `json:"namespace"`
 	Username  string        `json:"username"`
@@ -168,4 +168,8 @@ func (b *backend) handleReadConfig(ctx context.Context, req *logical.Request, da
 	return &logical.Response{
 		Data: resp,
 	}, nil
+}
+
+func (b *backend) handleListConfig(ctx context.Context, req *logical.Request) (*logical.Response, error) {
+	return nil, nil
 }
