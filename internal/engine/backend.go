@@ -1,4 +1,4 @@
-package dockerhub
+package engine
 
 import (
 	"context"
@@ -6,9 +6,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.com/hoeg/vault-plugin-secrets-dockerhub/internal/config"
+	"github.com/hoeg/vault-plugin-secrets-dockerhub/internal/token"
 )
 
 const dockerHubHelp = `
@@ -55,26 +56,26 @@ func newBackend() (*backend, error) {
 			},
 		},
 		Paths: framework.PathAppend(
-			b.configPaths(),
-			b.tokenPaths(),
+			config.Paths(),
+			token.Paths(),
 		),
 		Secrets: []*framework.Secret{
 			{
 				Type:            "DockerHub",
-				DefaultDuration: defaultTTL,
-				Revoke:          b.handleRevokeToken,
+				DefaultDuration: config.DefaultTTL,
+				Revoke:          token.HandleRevoke,
 				Fields: map[string]*framework.FieldSchema{
-					tokenUsername: {
+					token.Username: {
 						Type:        framework.TypeString,
-						Description: descTokenUsername,
+						Description: token.DescTokenUsername,
 					},
-					tokenNamespace: {
+					token.Namespace: {
 						Type:        framework.TypeString,
-						Description: descTokenNamespace,
+						Description: token.DescTokenNamespace,
 					},
-					tokenUUID: {
+					token.UUID: {
 						Type:        framework.TypeString,
-						Description: descTokenUUID,
+						Description: token.DescTokenUUID,
 					},
 				},
 			},
@@ -82,13 +83,4 @@ func newBackend() (*backend, error) {
 	}
 
 	return b, nil
-}
-
-func (b *backend) handleExistenceCheck(ctx context.Context, req *logical.Request, data *framework.FieldData) (bool, error) {
-	out, err := req.Storage.Get(ctx, req.Path)
-	if err != nil {
-		return false, errwrap.Wrapf("existence check failed: {{err}}", err)
-	}
-
-	return out != nil, nil
 }

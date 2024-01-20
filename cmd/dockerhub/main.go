@@ -6,7 +6,7 @@ import (
 	hclog "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/sdk/plugin"
-	dockerhub "github.com/hoeg/vault-plugin-secrets-dockerhub"
+	"github.com/hoeg/vault-plugin-secrets-dockerhub/internal/engine"
 )
 
 func main() {
@@ -23,7 +23,7 @@ func main() {
 	tlsProviderFunc := api.VaultPluginTLSProvider(tlsConfig)
 
 	err := plugin.Serve(&plugin.ServeOpts{
-		BackendFactoryFunc: dockerhub.Factory,
+		BackendFactoryFunc: engine.Factory,
 		TLSProviderFunc:    tlsProviderFunc,
 	})
 	if err != nil {
