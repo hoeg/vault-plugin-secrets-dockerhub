@@ -185,6 +185,7 @@ func handleList(ctx context.Context, req *logical.Request, data *framework.Field
 		if err := json.Unmarshal([]byte(sc), &c); err != nil {
 			return nil, fmt.Errorf("%s: %w", fmtErrConfUnmarshal, err)
 		}
+		resp[c.Username] = c
 	}
 	return &logical.Response{
 		Data: resp,
