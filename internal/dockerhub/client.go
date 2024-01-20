@@ -32,9 +32,11 @@ func (c *Client) NewToken(ctx context.Context, label, namespace string) (DockerH
 		return DockerHubToken{}, err
 	}
 	createToken := struct {
-		TokenLabel string `json:"token_label"`
+		TokenLabel string   `json:"token_label"`
+		Scopes     []string `json:"scopes"`
 	}{
 		TokenLabel: label,
+		Scopes:     []string{"repo:public_read"},
 	}
 	payload, err := json.Marshal(createToken)
 	if err != nil {
@@ -46,8 +48,7 @@ func (c *Client) NewToken(ctx context.Context, label, namespace string) (DockerH
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "vault-docker-hub-secret")
-	req.AddCookie(&http.Cookie{Name: "token", Value: apiToken})
-	req.AddCookie(&http.Cookie{Name: "namespace", Value: namespace})
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiToken))
 
 	httpClient := http.Client{}
 	resp, err := httpClient.Do(req)
@@ -56,7 +57,7 @@ func (c *Client) NewToken(ctx context.Context, label, namespace string) (DockerH
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusCreated {
-		return DockerHubToken{}, fmt.Errorf("failed to createauth token: %d", resp.StatusCode)
+		return DockerHubToken{}, fmt.Errorf("failed to create auth token: %d", resp.StatusCode)
 	}
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -82,8 +83,7 @@ func (c *Client) DeleteToken(ctx context.Context, UUID, namespace string) error 
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "vault-docker-hub-secret")
-	req.AddCookie(&http.Cookie{Name: "token", Value: apiToken})
-	req.AddCookie(&http.Cookie{Name: "namespace", Value: namespace})
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiToken))
 
 	httpClient := http.Client{}
 	resp, err := httpClient.Do(req)
