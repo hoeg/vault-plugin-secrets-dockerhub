@@ -13,10 +13,10 @@ To use the plugin you must rigster it. See the [Hashicorp Vault documentation](h
 First configure the credentials for the DockerHub account you want credentials from:
 
 ```
-vault write dockerhub/config/<username> password=<password> namespace=<namespace>
+vault write dockerhub/config/<username> password=<password> scopes=<scopes>
 ```
 
- where namespace is a comma separated list of namespaces.
+where scopes is a comma separated list with the following valid values:`admin, write, read, public_read`.
 
 `ttl` is optional. If it is not provided it will be set to the default `ttl` which is 5 minutes.
 
@@ -26,25 +26,14 @@ You can read the permissions using
 vault read dockerhub/config/<username>
 ```
 
- The password will not be shown. Also it is not possible to update en existing configuration but a new one can be created. No validity checks are made when the config is written.
+The password will not be shown. Also it is not possible to update en existing configuration but a new one can be created. No validity checks are made when the config is written aside from validating the scopes.
 
 ### Creating tokens
 
 Tokens issued by Vault will be revoked automatically after the `ttl` has expired. To issue a token run:
 
 ```
-vault write dockerhub/token/<username>/<namespace> label=<token label>
+vault write dockerhub/token/<username>/<scope> label=<token label>
 ```
 
-By having namespace as part of the path it is possible to restrict which namespace vault users are allowed to create credentials for.
-
-
-## Disclaimer
-
-This plugin is build as an educational exercise in a day to learn about the Hashicorp Vault plugin structure. No garuantees are made about its security or stability (see the lack of tests). Use at your own risk...
-
-
-## TODO
-
-- List configurations
-- A lot of cleanup!!
+By having scope as part of the path it is possible to restrict which scopes vault users are allowed to create credentials for.
