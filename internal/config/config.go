@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.com/hoeg/vault-plugin-secrets-dockerhub/internal/value"
 )
 
 // pathPatternConfig is the string used to define the base path of the config
@@ -25,19 +25,17 @@ const (
 )
 
 const (
-	configNamespace     = "namespace"
-	descConfigNamespace = "Docker Hub namespace that should be configured."
-	configUsername      = "username"
-	descConfigUsername  = "Docker Hub username that will issue access tokens."
-	configPassword      = "password"
-	descConfigPassword  = "Password for the Docker Hub user."
+	configScope        = "Scope"
+	descConfigScope    = "Scopes that is allowed for the Docker Hub token."
+	configUsername     = "username"
+	descConfigUsername = "Docker Hub username that will issue access tokens."
+	configPassword     = "password"
+	descConfigPassword = "Password for the Docker Hub user."
 )
 
 const pathConfigHelpSyn = `
 Configure the Docker Hub secrets plugin.
 `
-
-const DefaultTTL time.Duration = 5 * time.Minute
 
 var pathConfigHelpDesc = ""
 
@@ -47,9 +45,9 @@ func Paths() []*framework.Path {
 			Pattern: pathPatternConfig,
 
 			Fields: map[string]*framework.FieldSchema{
-				configNamespace: {
+				configScope: {
 					Type:        framework.TypeCommaStringSlice,
-					Description: descConfigNamespace,
+					Description: descConfigScope,
 				},
 				configUsername: {
 					Type:        framework.TypeString,
@@ -98,17 +96,8 @@ func Paths() []*framework.Path {
 	}
 }
 
-// Config holds to values needed to issue a new Docker Hub access token
-type Config struct {
-	Namespace []string      `json:"namespace"`
-	Username  string        `json:"username"`
-	Password  string        `json:"password"`
-	TTL       time.Duration `json:"ttl"`
-	MaxTTL    time.Duration `json:"max_ttl"`
-}
-
-func RetrieveConfig(ctx context.Context, username string, s logical.Storage) (*Config, error) {
-	c := Config{}
+func Retrieve(ctx context.Context, username string, s logical.Storage) (*value.Config, error) {
+	c := value.Config{}
 	entry, err := s.Get(ctx, getStorePath(username))
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", fmtErrConfRetrieval, err)
@@ -126,11 +115,13 @@ func RetrieveConfig(ctx context.Context, username string, s logical.Storage) (*C
 }
 
 func handleCreate(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	c := Config{}
-	c.Username = data.Get(configUsername).(string)
-	c.Password = data.Get(configPassword).(string)
-	c.Namespace = data.Get(configNamespace).([]string)
-	c.TTL = DefaultTTL
+	c, err := value.NewConfig(
+		data.Get(configUsername).(string),
+		data.Get(configPassword).(string),
+		data.Get(configScope).([]string))
+	if err != nil {
+		return nil, err
+	}
 
 	ce, err := logical.StorageEntryJSON(getStorePath(c.Username), c)
 	if err != nil {
@@ -153,7 +144,7 @@ func getStorePath(u string) string {
 
 func handleRead(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 	u := data.Get(configUsername).(string)
-	c, err := RetrieveConfig(ctx, u, req.Storage)
+	c, err := Retrieve(ctx, u, req.Storage)
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +154,7 @@ func handleRead(ctx context.Context, req *logical.Request, data *framework.Field
 	if v := c.Username; v != "" {
 		resp["username"] = v
 	}
-	if v := c.Namespace; v != nil {
+	if v := c.Scopes; v != nil {
 		resp["namespace"] = v
 	}
 	resp["ttl"] = c.TTL.String()
@@ -181,7 +172,7 @@ func handleList(ctx context.Context, req *logical.Request, data *framework.Field
 
 	resp := make(map[string]interface{})
 	for _, sc := range configs {
-		c := Config{}
+		c := value.Config{}
 		if err := json.Unmarshal([]byte(sc), &c); err != nil {
 			return nil, fmt.Errorf("%s: %w", fmtErrConfUnmarshal, err)
 		}

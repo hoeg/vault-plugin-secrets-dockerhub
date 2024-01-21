@@ -4,15 +4,15 @@ import (
 	"context"
 	"testing"
 
-	"github.com/hoeg/vault-plugin-secrets-dockerhub/internal/config"
+	"github.com/hoeg/vault-plugin-secrets-dockerhub/internal/value"
 )
 
 func TestCreateToken(t *testing.T) {
 	t.Skip()
-	conf := config.Config{
-		Namespace: []string{"hoeg"},
-		Username:  "hoeg",
-		Password:  "",
+	conf := value.Config{
+		Scopes:   []string{"hoeg"},
+		Username: "hoeg",
+		Password: "",
 	}
 
 	client := Client{
@@ -30,17 +30,17 @@ func TestCreateToken(t *testing.T) {
 
 func TestDeleteToken(t *testing.T) {
 	t.Skip()
-	conf := config.Config{
-		Namespace: []string{"hoeg"},
-		Username:  "hoeg",
-		Password:  "",
+	conf := value.Config{
+		Scopes:   []string{"hoeg"},
+		Username: "hoeg",
+		Password: "",
 	}
 
 	client := Client{
 		Conf: &conf,
 	}
 
-	err := client.DeleteToken(context.Background(), "c071fa97-fe94-41d5-b1f8-96af5604e3d3", "hoeg")
+	err := client.DeleteToken(context.Background(), "c071fa97-fe94-41d5-b1f8-96af5604e3d3")
 	if err != nil {
 		t.Fatal(err)
 	}

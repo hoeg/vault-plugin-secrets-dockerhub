@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/hoeg/vault-plugin-secrets-dockerhub/internal/config"
+	"github.com/hoeg/vault-plugin-secrets-dockerhub/internal/value"
 )
 
 const (
@@ -22,11 +22,11 @@ type DockerHubToken struct {
 }
 
 type Client struct {
-	Conf *config.Config
+	Conf *value.Config
 }
 
 // NewToken creates new access token and stores the uuid together with the label for lookup.
-func (c *Client) NewToken(ctx context.Context, label, namespace string) (DockerHubToken, error) {
+func (c *Client) NewToken(ctx context.Context, label, scope string) (DockerHubToken, error) {
 	apiToken, err := c.dockerHubAuth(ctx)
 	if err != nil {
 		return DockerHubToken{}, err
@@ -36,7 +36,7 @@ func (c *Client) NewToken(ctx context.Context, label, namespace string) (DockerH
 		Scopes     []string `json:"scopes"`
 	}{
 		TokenLabel: label,
-		Scopes:     []string{"repo:public_read"},
+		Scopes:     []string{fmt.Sprintf("repo:%s", scope)},
 	}
 	payload, err := json.Marshal(createToken)
 	if err != nil {
@@ -72,7 +72,7 @@ func (c *Client) NewToken(ctx context.Context, label, namespace string) (DockerH
 }
 
 // DeleteToken will delete at token that is associated with the uuid.
-func (c *Client) DeleteToken(ctx context.Context, UUID, namespace string) error {
+func (c *Client) DeleteToken(ctx context.Context, UUID string) error {
 	apiToken, err := c.dockerHubAuth(ctx)
 	if err != nil {
 		return err
