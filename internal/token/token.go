@@ -3,6 +3,7 @@ package token
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/sdk/framework"
@@ -91,7 +92,7 @@ func handleCreate(ctx context.Context, req *logical.Request, data *framework.Fie
 	if err != nil {
 		return nil, err
 	}
-	if !isValidScope(scope, c.Scopes) {
+	if !slices.Contains(c.Scopes, scope) {
 		return nil, err
 	}
 
@@ -146,13 +147,4 @@ func HandleRevoke(ctx context.Context, req *logical.Request, data *framework.Fie
 		return nil, err
 	}
 	return nil, nil
-}
-
-func isValidScope(scope string, validScopes []string) bool {
-	for _, s := range validScopes {
-		if s == scope {
-			return true
-		}
-	}
-	return false
 }
