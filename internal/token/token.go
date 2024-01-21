@@ -3,6 +3,7 @@ package token
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/sdk/framework"
@@ -13,24 +14,24 @@ import (
 
 // pathPatternToken is the string used to define the base path of the config
 // endpoint as well as the storage path of the config object.
-var pathPatternToken = fmt.Sprintf("token/(%s)/(%s)", framework.GenericNameRegex(Username), framework.GenericNameRegex(Namespace))
+var pathPatternToken = fmt.Sprintf("token/(%s)/(%s)", framework.GenericNameRegex(Username), framework.GenericNameRegex(Scope))
 
 const (
-	Username           = "username"
-	DescTokenUsername  = "Username that has access to the namespace."
-	Namespace          = "namespace"
-	DescTokenNamespace = "Docker namespace to issue a token to."
-	Label              = "label"
-	DescTokenLabel     = "Name for the token to create."
-	UUID               = "uuid"
-	DescTokenUUID      = "The uuid for a generated token. Used for revokation."
+	Username          = "username"
+	DescTokenUsername = "Username for DockerHub."
+	Scope             = "scope"
+	DescTokenScope    = "Scope of the token."
+	Label             = "label"
+	DescTokenLabel    = "Name for the token to create."
+	UUID              = "uuid"
+	DescTokenUUID     = "The uuid for a generated token. Used for revokation."
 )
 
 const pathTokenHelpSyn = `
 
 `
 
-var pathTokenHelpDesc = "Issue an access token to Docker Hub for given namespace."
+var pathTokenHelpDesc = "Issue an access token to Docker Hub with a given scope."
 
 func Paths() []*framework.Path {
 	return []*framework.Path{
@@ -42,9 +43,9 @@ func Paths() []*framework.Path {
 					Type:        framework.TypeString,
 					Description: DescTokenUsername,
 				},
-				Namespace: {
+				Scope: {
 					Type:        framework.TypeString,
-					Description: DescTokenNamespace,
+					Description: DescTokenScope,
 				},
 				Label: {
 					Type:        framework.TypeString,
@@ -84,14 +85,14 @@ func handleExistenceCheck(ctx context.Context, req *logical.Request, data *frame
 
 func handleCreate(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 	u := data.Get(Username).(string)
-	ns := data.Get(Namespace).(string)
+	scope := data.Get(Scope).(string)
 	l := data.Get(Label).(string)
 
-	c, err := config.RetrieveConfig(ctx, u, req.Storage)
+	c, err := config.Retrieve(ctx, u, req.Storage)
 	if err != nil {
 		return nil, err
 	}
-	if !isValidNamespace(ns, c.Namespace) {
+	if !slices.Contains(c.Scopes, scope) {
 		return nil, err
 	}
 
@@ -99,7 +100,7 @@ func handleCreate(ctx context.Context, req *logical.Request, data *framework.Fie
 		Conf: c,
 	}
 
-	t, err := dc.NewToken(ctx, l, ns)
+	t, err := dc.NewToken(ctx, l, scope)
 	if err != nil {
 		return nil, err
 	}
@@ -115,15 +116,15 @@ func handleCreate(ctx context.Context, req *logical.Request, data *framework.Fie
 			InternalData: map[string]interface{}{
 				"secret_type": "DockerHub",
 				Username:      c.Username,
-				Namespace:     ns,
+				Scope:         scope,
 				UUID:          t.UUID,
 			},
 		},
 		Data: map[string]interface{}{
-			"token":   t.Token,
-			UUID:      t.UUID,
-			Username:  c.Username,
-			Namespace: ns,
+			"token":  t.Token,
+			UUID:     t.UUID,
+			Username: c.Username,
+			Scope:    scope,
 		},
 	}, nil
 }
@@ -131,9 +132,8 @@ func handleCreate(ctx context.Context, req *logical.Request, data *framework.Fie
 func HandleRevoke(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 	u := data.Get(Username).(string)
 	UUID := data.Get(UUID).(string)
-	ns := data.Get(Namespace).(string)
 
-	c, err := config.RetrieveConfig(ctx, u, req.Storage)
+	c, err := config.Retrieve(ctx, u, req.Storage)
 	if err != nil {
 		return nil, err
 	}
@@ -142,18 +142,9 @@ func HandleRevoke(ctx context.Context, req *logical.Request, data *framework.Fie
 		Conf: c,
 	}
 
-	err = dc.DeleteToken(ctx, UUID, ns)
+	err = dc.DeleteToken(ctx, UUID)
 	if err != nil {
 		return nil, err
 	}
 	return nil, nil
-}
-
-func isValidNamespace(ns string, validNs []string) bool {
-	for _, n := range validNs {
-		if n == ns {
-			return true
-		}
-	}
-	return false
 }

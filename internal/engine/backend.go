@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/hoeg/vault-plugin-secrets-dockerhub/internal/config"
 	"github.com/hoeg/vault-plugin-secrets-dockerhub/internal/token"
+	"github.com/hoeg/vault-plugin-secrets-dockerhub/internal/value"
 )
 
 const dockerHubHelp = `
@@ -19,7 +19,6 @@ The DockerHub secrets backend will create a temporary access token for Docker Hu
 // backend wraps the backend framework
 type backend struct {
 	*framework.Backend
-	configLock *sync.Mutex
 }
 
 var _ logical.Factory = Factory
@@ -62,16 +61,16 @@ func newBackend() (*backend, error) {
 		Secrets: []*framework.Secret{
 			{
 				Type:            "DockerHub",
-				DefaultDuration: config.DefaultTTL,
+				DefaultDuration: value.DefaultTTL,
 				Revoke:          token.HandleRevoke,
 				Fields: map[string]*framework.FieldSchema{
 					token.Username: {
 						Type:        framework.TypeString,
 						Description: token.DescTokenUsername,
 					},
-					token.Namespace: {
+					token.Scope: {
 						Type:        framework.TypeString,
-						Description: token.DescTokenNamespace,
+						Description: token.DescTokenScope,
 					},
 					token.UUID: {
 						Type:        framework.TypeString,
