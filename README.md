@@ -14,8 +14,8 @@ To use the plugin you must rigster it. See the [Hashicorp Vault documentation](h
 
 First configure the credentials for the DockerHub account you want credentials from:
 
-```
-vault write dockerhub/config/<username> password=<password> scopes=<scopes>
+```bash
+vault write dockerhub/config/$USERNAME password=$PASSWORD scopes=$SCOPE
 ```
 
 where scopes is a comma separated list with the following valid values:`admin, write, read, public_read`.
@@ -24,8 +24,8 @@ where scopes is a comma separated list with the following valid values:`admin, w
 
 You can read the permissions using
 
-```
-vault read dockerhub/config/<username>
+```bash
+vault read dockerhub/config/$USERNAME
 ```
 
 The password will not be shown. Also it is not possible to update en existing configuration but a new one can be created. No validity checks are made when the config is written aside from validating the scopes.
@@ -34,8 +34,8 @@ The password will not be shown. Also it is not possible to update en existing co
 
 Tokens issued by Vault will be revoked automatically after the `ttl` has expired. To issue a token run:
 
-```
-vault write dockerhub/token/<username>/<scope> label=<token label>
+```bash
+vault write dockerhub/token/$SCOPE label=$TOKEN_LABEL
 ```
 
 By having scope as part of the path it is possible to restrict which scopes vault users are allowed to create credentials for.
