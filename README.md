@@ -1,5 +1,7 @@
 # Vault Secrets Plugin for Docker Hub
 
+[![CodeQL](https://github.com/hoeg/vault-plugin-secrets-dockerhub/actions/workflows/github-code-scanning/codeql/badge.svg?branch=master)](https://github.com/hoeg/vault-plugin-secrets-dockerhub/actions/workflows/github-code-scanning/codeql) [![Semgrep](https://github.com/hoeg/vault-plugin-secrets-dockerhub/actions/workflows/semgrep.yml/badge.svg?branch=master)](https://github.com/hoeg/vault-plugin-secrets-dockerhub/actions/workflows/semgrep.yml)
+
 ![rest](https://github.com/hoeg/vault-plugin-secrets-dockerhub/blob/master/pics/4wysdl.jpg)
 
 Docker is used in many CI/CD piplines and accessing your private repositories should be made possible in a secure way. Using username and password for this is bad since these credentials have way to broad permissions. Access tokens on the other hand cannot change the password for an account and they can be restricted to specific namespaces thereby having a tighter scope than your username and password.
