@@ -93,7 +93,7 @@ func handleCreate(ctx context.Context, req *logical.Request, data *framework.Fie
 		return nil, err
 	}
 	if !slices.Contains(c.Scopes, scope) {
-		return nil, err
+	 return nil, fmt.Errorf("requested scope %q is not permitted for user %q", scope, u)
 	}
 
 	dc := dockerhub.Client{
